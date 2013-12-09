@@ -2,12 +2,13 @@ package com.example.lightsaber;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
 import android.os.Bundle;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -33,7 +34,8 @@ public class GameActivity extends Activity implements SensorEventListener
 	// Main view
 	private FrameLayout mFrame;
 	//there's definitely a better way to do this, but it ain't happening
-	private Bitmap mBitmap, mBitmap1, mBitmap2, mBitmap3, mBitmap4;
+	private Bitmap mBitmap, mBitmap1, mBitmap2, mBitmap3, mBitmap4, mBitmapDroid, mBitmapDroid2;
+	
 	float speed = 0;
 	float xSpeed = 0, ySpeed = 0;
 
@@ -81,6 +83,11 @@ public class GameActivity extends Activity implements SensorEventListener
 		mBitmap2 = BitmapFactory.decodeResource(getResources(), R.drawable.leftswing, opts);
 		mBitmap3 = BitmapFactory.decodeResource(getResources(), R.drawable.rightswing, opts);
 		mBitmap4 = BitmapFactory.decodeResource(getResources(), R.drawable.downswing, opts);
+		
+		//load droid pictures
+		mBitmapDroid = BitmapFactory.decodeResource(getResources(), R.drawable.droid);
+		mBitmapDroid2 = BitmapFactory.decodeResource(getResources(), R.drawable.red);
+		
 		final Button leftButton = (Button) findViewById(R.id.left_button);
 		final Button rightButton = (Button) findViewById(R.id.right_button);
 
@@ -350,6 +357,371 @@ public class GameActivity extends Activity implements SensorEventListener
     
     //end sensor stuff
 	
+    private class EnemyView extends View {
+		// Base Bitmap Size
+		private static final int BITMAP_SIZE = 128;
+
+		// Animation refresh rate
+		private static final int REFRESH_RATE = 15;
+		
+		// Shot pause duration
+		private static final int PAUSE_DUR = 40;
+	
+		// Log TAG
+		private static final String TAG = "Enemy";
+
+		// Current top and left coordinates
+		private float mX, mY;
+
+		// Direction and speed of movement
+		// measured in terms of how much the EnemyView moves
+		// in one time step.
+		private float mDx, mDy;
+		
+		// number of moves before the "enemy" stops to fire
+		private int mCount;
+		// number of time segments before enemy moves again
+		private int mShotCount;
+		
+		private boolean hasShot;
+		
+		private boolean destroyed;
+
+		// Height and width of the FrameLayout
+		private int mDisplayWidth, mDisplayHeight;
+
+		// Size of the EnemyView
+		private int mScaledBitmapWidth;
+
+		// Underlying Bitmap scaled to new size
+		private final Bitmap mScaledBitmap;
+
+		private final Paint mPainter = new Paint();
+		
+		private BulletView bullet;
+
+		// Reference to the movement calculation and update code
+		private final ScheduledFuture<?> mMoverFuture;
+
+		// context and width and height of the FrameLayout
+		public EnemyView(Context context, int w, int h) {
+
+			super(context);
+
+			mDisplayWidth = w;
+			mDisplayHeight = h;
+
+			Log.i(TAG, "Display Dimensions: x:" + mDisplayWidth + " y:"
+					+ mDisplayHeight);
+
+			Random r = new Random();
+
+			// Set EnemyView's size
+			mScaledBitmapWidth = BITMAP_SIZE;
+
+			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid,
+					mScaledBitmapWidth, mScaledBitmapWidth, false);
+
+			mX = r.nextInt(mDisplayWidth);
+			mY = r.nextInt(mDisplayHeight);
+			
+			mCount = r.nextInt(50) + 10;
+			mShotCount = PAUSE_DUR;
+			hasShot = false;
+			destroyed = false;
+			
+			// movement 
+			setRandomDirection();
+
+			ScheduledExecutorService executor = Executors
+					.newScheduledThreadPool(1);
+
+			// The EnemyView's movement calculations & display update
+			mMoverFuture = executor.scheduleWithFixedDelay(new Runnable() {
+				@Override
+				public void run() {
+					if (moveUntilDestroyed()){
+						stop();
+					}else {
+						postInvalidate();
+					}
+				}
+			}, 0, REFRESH_RATE, TimeUnit.MILLISECONDS);
+
+			Log.i(TAG, "Enemy created at x:" + mX + " y:" + mY);
+			Log.i(TAG, "Enemy direction is dx:" + mDx + " dy:" + mDy);
+
+		}
+
+		// stop the EnemyView's movement calculations and remove it from the
+		// screen
+		private void stop() {
+			final EnemyView view = this;
+			// cancel the executor
+			if (mMoverFuture.cancel(true)) {
+
+				// post a runnable to mFrame to remove this EnemyView
+				mFrame.post(new Runnable() {
+
+					@Override
+					public void run() {
+						mFrame.removeView(view);
+					}
+				});
+			} else {
+				Log.e(TAG, "failed to cancel mMoverFuture:" + this);
+			}
+		}
+
+		// moves the EnemyView
+		// returns true if the EnemyView has exited the screen
+		private boolean moveUntilDestroyed() {
+			if (!isDestroyed() && mCount > 0){
+				mX += mDx;
+				mY += mDy;
+				mCount--;
+				if (mX < 0 || (mX > mDisplayWidth - mScaledBitmapWidth)){
+					mDx = -mDx;
+					mX += mDx;
+					mCount = 0;
+				}if (mY < 0 || (mY > mDisplayHeight - mScaledBitmapWidth)){
+					mDy = -mDy;
+					mY += mDy;
+					mCount = 0;
+				}
+			}else if(!isDestroyed() && mShotCount > 0){
+				//first time entering fire a shot
+				if (!hasShot){
+					hasShot = true;
+				}else if(mShotCount == PAUSE_DUR/2 ){
+					Random rand = new Random();
+					if (rand.nextInt() % 2 > 0){
+						final EnemyView cur = this;
+						Runnable r = new Runnable(){
+							public void run(){
+								final BulletView bulletView = new BulletView(
+										getApplicationContext(), mFrame.getWidth(), mFrame.getHeight(), cur,
+										mX + mScaledBitmapWidth/2 , mY + mScaledBitmapWidth/2);
+								bullet = bulletView;
+								mFrame.addView(bulletView);
+							}
+						};
+						mFrame.post(r);
+					}
+				}
+				mShotCount--;
+			}else if (!isDestroyed()){
+				Random r = new Random();
+				mShotCount = PAUSE_DUR;
+				mCount = r.nextInt(50) + 10;
+				//reset both
+				setRandomDirection();
+				hasShot = false;
+			}
+			
+			return isDestroyed();
+		}
+
+		// returns true if the EnemyView has been destroyed
+		private boolean isDestroyed() {
+			return destroyed; 
+		}
+		
+		public void setDestroyed() {
+			destroyed = true;
+		}
+		
+		private void setRandomDirection(){
+			Random r = new Random();
+			// movement 
+			switch ((r.nextInt(mDisplayWidth)) % 8){
+			case 0:
+				mDx = 10;
+				mDy = 0;
+				break;
+			case 1:
+				mDx = -10;
+				mDy = 0;
+				break;
+			case 2:
+				mDx = 0;
+				mDy = 10;
+				break;
+			case 3:
+				mDx = 0;
+				mDy = -10;
+				break;
+			case 4:
+				mDx = 10;
+				mDy = 10;
+				break;
+			case 5:
+				mDx = -10;
+				mDy = -10;
+				break;
+			case 6:
+				mDx = 10;
+				mDy = -10;
+				break;
+			case 7:
+				mDx = -10;
+				mDy = 10;
+				break;
+			}
+		}
+
+		// Draws the scaled Bitmap
+		@Override
+		protected void onDraw(Canvas canvas) {
+			canvas.drawBitmap(mScaledBitmap, mX, mY, mPainter);
+		}
+	}
+	
+	@SuppressLint("DrawAllocation")
+	private class BulletView extends View {
+		// Base Bitmap Size
+		private static final int BITMAP_SIZE = 16;
+
+		// Animation refresh rate
+		private static final int REFRESH_RATE = 15;
+		
+		// Max bullet size to determine if player is hit
+		private static final int MAX_SIZE = 192;
+		
+		private static final int MIN_SIZE = 2;
+				
+		// Log TAG
+		private static final String TAG = "Bullet";
+
+		// Current top and left coordinates
+		private float mX, mY;
+		
+		private float mDx, mDy;
+		
+		private EnemyView parent;
+		
+		// boolean for whether or not the bullet has been blocked
+		private boolean blocked;
+
+		// Height and width of the FrameLayout
+		private int mDisplayWidth, mDisplayHeight;
+
+		// Size of the BulletView
+		private int mScaledBitmapWidth;
+
+		// Underlying Bitmap scaled to new size
+		private final Bitmap mScaledBitmap;
+
+		private final Paint mPainter = new Paint();
+		
+		// Reference to the movement calculation and update code
+		private final ScheduledFuture<?> mMoverFuture;
+
+		// context and width and height of the FrameLayout
+		public BulletView(Context context, int w, int h, EnemyView parent, float mX, float mY) {
+
+			super(context);
+
+			mDisplayWidth = w;
+			mDisplayHeight = h;
+			
+			this.mX = mX;
+			this.mY = mY;
+			
+			mDx = 0;
+			mDy = 0;
+			
+			this.parent = parent;
+			
+			blocked = false;
+			
+			Log.i(TAG, "Display Dimensions: x:" + mDisplayWidth + " y:"
+					+ mDisplayHeight);
+
+			// Set BulletView's size
+			mScaledBitmapWidth = BITMAP_SIZE;
+
+			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid2, mScaledBitmapWidth, mScaledBitmapWidth, false);
+			
+			ScheduledExecutorService executor = Executors
+					.newScheduledThreadPool(1);
+
+			final BulletView cur = this;
+			// The EnemyView's movement calculations & display update
+			mMoverFuture = executor.scheduleWithFixedDelay(new Runnable() {
+				@Override
+				public void run() {
+					if (moveUntilHitOrDeflect()){
+						if (!cur.hasHitPlayer()) cur.parent.setDestroyed();
+						stop();
+					}else {
+						postInvalidate();
+					}
+				}
+			}, 0, REFRESH_RATE, TimeUnit.MILLISECONDS);
+			
+			Log.i(TAG, "Bullet created at x:" + mX + " y:" + mY);
+		}
+		
+		private void stop() {
+			final BulletView view = this;
+			// cancel the executor
+			if (mMoverFuture.cancel(true)) {
+				// post a runnable to mFrame to remove this BulletView
+				mFrame.post(new Runnable() {
+					@Override
+					public void run() {
+						mFrame.removeView(view);
+					}
+				});
+			} else {
+				Log.e(TAG, "failed to cancel mMoverFuture:" + this);
+			}
+		}
+		
+		private boolean moveUntilHitOrDeflect() {
+			if(!(hasHitPlayer() || deflected())){
+				mScaledBitmapWidth *= 1.1;
+			}else if(hasHitPlayer() && !deflected()){
+				// call method that decrements players health
+			}else if(deflected() && !hasHitEnemy()){
+				if (mScaledBitmapWidth > MIN_SIZE){
+					mScaledBitmapWidth *= .9;
+				}
+				mDx = (parent.mX + parent.mScaledBitmapWidth/2 - mX)/10;
+				mDy = (parent.mY + parent.mScaledBitmapWidth/2 - mY)/10;
+				mX += mDx;
+				mY += mDy;
+			}
+			return hasHitPlayer() || hasHitEnemy();
+		}
+
+		private boolean hasHitPlayer() {
+		//testing code: immediately bounces back the bullet to its droid
+			if (mScaledBitmapWidth * 1.1 >= MAX_SIZE) setBlocked();
+			return mScaledBitmapWidth >= MAX_SIZE;
+		}
+		
+		private boolean hasHitEnemy() {
+			return deflected() && mScaledBitmapWidth <= MIN_SIZE;
+		}
+		
+		private boolean deflected() {
+			return blocked;
+		}
+	
+		// player call this when bullet needs to be deflected
+		public void setBlocked(){
+			blocked = true;
+		}
+
+		// Draws the scaled Bitmap
+		@Override
+		protected void onDraw(Canvas canvas) {
+			canvas.drawBitmap(Bitmap.createScaledBitmap(mScaledBitmap, mScaledBitmapWidth, mScaledBitmapWidth, false), 
+					mX, mY, mPainter);
+		}
+	}
 	
 	public class Background extends View
 	{

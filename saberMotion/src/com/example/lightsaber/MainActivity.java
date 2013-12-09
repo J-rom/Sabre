@@ -1,4 +1,4 @@
-package com.example.sabre;
+package com.example.lightsaber;
 
 import android.app.Activity;
 import android.content.Intent;

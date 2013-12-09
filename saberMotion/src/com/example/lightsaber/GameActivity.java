@@ -1,5 +1,6 @@
 package com.example.lightsaber;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
@@ -35,36 +36,43 @@ public class GameActivity extends Activity implements SensorEventListener
 	private FrameLayout mFrame;
 	//there's definitely a better way to do this, but it ain't happening
 	private Bitmap mBitmap, mBitmap1, mBitmap2, mBitmap3, mBitmap4, mBitmapDroid, mBitmapDroid2;
-	
+
 	float speed = 0;
 	float xSpeed = 0, ySpeed = 0;
+	int moveScaleX = -10, moveScaleY = -7;
 
-    Boolean faceUp = false;
+	int lives = 10;
+	int score = 0;
+
+	Boolean faceUp = false;
 	//sensor stuff
 	/* sensor data */
-    SensorManager m_sensorManager;
-    float []m_lastMagFields;
-    float []m_lastAccels;
-    float []m_lastGravity;
-    private float[] m_rotationMatrix = new float[16];
-    private float[] m_remappedR = new float[16];
-    private float[] m_orientation = new float[4];
- 
-    /* fix random noise by averaging tilt values */
-    final static int AVERAGE_BUFFER = 30;
-    float []m_prevPitch = new float[AVERAGE_BUFFER];
-    float m_lastPitch = 0.f;
-    float m_lastYaw = 0.f;
-    /* current index int m_prevEasts */
-    int m_pitchIndex = 0;
- 
-    float []m_prevRoll = new float[AVERAGE_BUFFER];
-    float m_lastRoll = 0.f;
-    /* current index into m_prevTilts */
-    int m_rollIndex = 0;
-    Lightsaber saber;
-    Background backView;
-    //
+	SensorManager m_sensorManager;
+	float []m_lastMagFields;
+	float []m_lastAccels;
+	float []m_lastGravity;
+	private float[] m_rotationMatrix = new float[16];
+	private float[] m_remappedR = new float[16];
+	private float[] m_orientation = new float[4];
+
+	ArrayList<BulletView> bulletList = new ArrayList<BulletView>();
+	ArrayList<EnemyView> enemyList = new ArrayList<EnemyView>();
+
+	/* fix random noise by averaging tilt values */
+	final static int AVERAGE_BUFFER = 30;
+	float []m_prevPitch = new float[AVERAGE_BUFFER];
+	float m_lastPitch = 0.f;
+	float m_lastYaw = 0.f;
+	/* current index int m_prevEasts */
+	int m_pitchIndex = 0;
+
+	float []m_prevRoll = new float[AVERAGE_BUFFER];
+	float m_lastRoll = 0.f;
+	/* current index into m_prevTilts */
+	int m_rollIndex = 0;
+	Lightsaber saber;
+	Background backView;
+	//
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -83,11 +91,11 @@ public class GameActivity extends Activity implements SensorEventListener
 		mBitmap2 = BitmapFactory.decodeResource(getResources(), R.drawable.leftswing, opts);
 		mBitmap3 = BitmapFactory.decodeResource(getResources(), R.drawable.rightswing, opts);
 		mBitmap4 = BitmapFactory.decodeResource(getResources(), R.drawable.downswing, opts);
-		
-		//load droid pictures
+
+		//load droid pictures: the droid itself and its bullet
 		mBitmapDroid = BitmapFactory.decodeResource(getResources(), R.drawable.droid);
 		mBitmapDroid2 = BitmapFactory.decodeResource(getResources(), R.drawable.red);
-		
+
 		final Button leftButton = (Button) findViewById(R.id.left_button);
 		final Button rightButton = (Button) findViewById(R.id.right_button);
 
@@ -98,8 +106,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		mFrame.addView(saber);
 		backView.start();
 		saber.start();
-		
-		
+
 		leftButton.setOnClickListener(new OnClickListener() 
 		{
 			//welp. scroll image left.
@@ -111,7 +118,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				//saber.move(-2);
 			}
 		});
-		
+
 		rightButton.setOnClickListener(new OnClickListener() {
 
 			// Remove the last still-visible BubbleView from the screen
@@ -124,249 +131,274 @@ public class GameActivity extends Activity implements SensorEventListener
 				Toast.makeText(getApplicationContext(), "mFrame"+backView.mDisplayWidth +" "+mFrame.getWidth() + " "+saber.psuedoRotate + " " + saber.state, Toast.LENGTH_SHORT).show();
 			}
 		});
-		
+
 		//sensor stuff
-        m_sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        registerListeners();
+		m_sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		registerListeners();
 	}
-	
+
 	//sensorstuff
 
-    private void registerListeners() {
-    	m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY), SensorManager.SENSOR_DELAY_GAME);
-        m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_GAME);
-        m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
-    }
- 
-    private void unregisterListeners() {
-        m_sensorManager.unregisterListener(this);
-    }
- 
-    @Override
-    public void onDestroy() {
-        unregisterListeners();
-        super.onDestroy();
-    }
- 
-    @Override
-    public void onPause() {
-        unregisterListeners();
-        super.onPause();
-    }
- 
-    @Override
-    public void onResume() {
-        registerListeners();
-        super.onResume();
-    }
- 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-    }
- 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            accel(event);
-            float z_value = event.values[2];
-            if (z_value >= 0){
-            	faceUp = true;
-    			//Toast.makeText(getApplicationContext(), "faceup", Toast.LENGTH_SHORT).show();
-    		    //face.setText("Face UP");
-            }
-            else{
-            	faceUp = false;
-    			//Toast.makeText(getApplicationContext(), "facedow", Toast.LENGTH_SHORT).show();
-    		    //face.setText("Face Down");
-            }
-        }
-        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            mag(event);
-        }
-        if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
-            grav(event);
-        }
-        
-    }
+	private void registerListeners() {
+		m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY), SensorManager.SENSOR_DELAY_GAME);
+		m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_GAME);
+		m_sensorManager.registerListener(this, m_sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
+	}
 
-    private void accel(SensorEvent event) {
-        if (m_lastAccels == null) {
-            m_lastAccels = new float[3];
-        }
- 
-        System.arraycopy(event.values, 0, m_lastAccels, 0, 3);
- 
-        /*if (m_lastMagFields != null) {
+	private void unregisterListeners() {
+		m_sensorManager.unregisterListener(this);
+	}
+
+	@Override
+	public void onDestroy() {
+		unregisterListeners();
+		super.onDestroy();
+	}
+
+	@Override
+	public void onPause() {
+		unregisterListeners();
+		super.onPause();
+	}
+
+	@Override
+	public void onResume() {
+		registerListeners();
+		super.onResume();
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+			accel(event);
+			float z_value = event.values[2];
+			if (z_value >= 0){
+				faceUp = true;
+				//Toast.makeText(getApplicationContext(), "faceup", Toast.LENGTH_SHORT).show();
+				//face.setText("Face UP");
+			}
+			else{
+				faceUp = false;
+				//Toast.makeText(getApplicationContext(), "facedow", Toast.LENGTH_SHORT).show();
+				//face.setText("Face Down");
+			}
+		}
+		if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+			mag(event);
+		}
+		if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
+			grav(event);
+		}
+
+	}
+
+	private void accel(SensorEvent event) {
+		if (m_lastAccels == null) {
+			m_lastAccels = new float[3];
+		}
+
+		System.arraycopy(event.values, 0, m_lastAccels, 0, 3);
+
+		/*if (m_lastMagFields != null) {
             computeOrientation();
         }*/
-    }
- 
-    private void mag(SensorEvent event) {
-        if (m_lastMagFields == null) {
-            m_lastMagFields = new float[3];
-        }
- 
-        System.arraycopy(event.values, 0, m_lastMagFields, 0, 3);
- 
-        if (m_lastAccels != null && m_lastGravity != null) {
-            computeOrientation();
-        }
-    }
- 
-    private void grav(SensorEvent event) {
-        if (m_lastGravity == null) {
-            m_lastGravity = new float[3];
-        }
- 
-        System.arraycopy(event.values, 0, m_lastGravity, 0, 3);
- 
-        /*if (m_lastMagFields != null) {
+	}
+
+	private void mag(SensorEvent event) {
+		if (m_lastMagFields == null) {
+			m_lastMagFields = new float[3];
+		}
+
+		System.arraycopy(event.values, 0, m_lastMagFields, 0, 3);
+
+		if (m_lastAccels != null && m_lastGravity != null) {
+			computeOrientation();
+		}
+	}
+
+	private void grav(SensorEvent event) {
+		if (m_lastGravity == null) {
+			m_lastGravity = new float[3];
+		}
+
+		System.arraycopy(event.values, 0, m_lastGravity, 0, 3);
+
+		/*if (m_lastMagFields != null) {
             computeOrientation();
         }*/
-    }
-    Filter [] m_filters = { new YawFilter(), new Filter(), new Filter() };
-    
-    private class Filter {
-        static final int AVERAGE_BUFFER = 10;
-        float []m_arr = new float[AVERAGE_BUFFER];
-        float prev = 0;
-        int m_idx = 0;
- 
-        public float append(float val) 
-        {
-            //look at the previous one, check if there is a dramatic shift
-        	if(!faceUp)
-        	{
-        		val =  95 - (val - 95);
-        		
-        	}
-            m_arr[m_idx] = val;
-            prev = val;
-            m_idx++;
-            if (m_idx == AVERAGE_BUFFER)
-                m_idx = 0;
-            return avg();
-        }
-        public float avg() {
-            float sum = 0;
-            for (float x: m_arr)
-                sum += x;
-            return sum / AVERAGE_BUFFER;
-        }
- 
-    }
- 
+	}
+	Filter [] m_filters = { new YawFilter(), new Filter(), new Filter() };
 
-    private class YawFilter extends Filter{
-        static final int AVERAGE_BUFFER = 15;
-        float []m_arr = new float[AVERAGE_BUFFER];
-        Boolean set = false;
-        float prevOrient = 0;
-        float prev;
-        int m_idx = 0;
-        public float append(float val, float pitch) 
-        {
-            //look at the previous one, check if it's in discriminated territory
-        	if(pitch < 115 && pitch > 70)
-        	{
-        		prevOrient = prev;
-        		set = true;
-        	}
-        	
-        	else
-        	{	
-        		if(!faceUp)
-        		{
-        			if(val > 0)
-        				m_arr[m_idx] = val - 180;
-        			else
-        				m_arr[m_idx] = val + 180;
-        				
-        		}
-        		else
-        			m_arr[m_idx] = val;
-            	m_idx++;
-        	}
-            if (m_idx == AVERAGE_BUFFER)
-                m_idx = 0;
-            return avg();
-        }
-        @Override
-        public float avg() {
-            float sum = 0;
-            for (float x: m_arr)
-                sum += x;
-            prev = sum / AVERAGE_BUFFER;
-            return sum / AVERAGE_BUFFER;
-        }
- 
-    }
-    private void computeOrientation() {
-        if (SensorManager.getRotationMatrix(m_rotationMatrix, m_lastGravity, m_lastAccels, m_lastMagFields)) {
-            SensorManager.getOrientation(m_rotationMatrix, m_orientation);
-            
-            /* 1 radian = 57.2957795 degrees */
-            /* [0] : yaw, rotation around z axis
-             * [1] : pitch, rotation around x axis
-             * [2] : roll, rotation around y axis */
-            float yaw = (float) (Math.toDegrees(m_orientation[0]));
-            float pitch = (float) (Math.toDegrees(m_orientation[1]) + 180f);
-            float roll = (float) (Math.toDegrees(m_orientation[2]) + 180f);
+	private class Filter {
+		static final int AVERAGE_BUFFER = 10;
+		float []m_arr = new float[AVERAGE_BUFFER];
+		float prev = 0;
+		int m_idx = 0;
 
-            float prevYaw = m_lastYaw;
-            float prevPitch = m_lastPitch;
-            float prevRoll = m_lastRoll;
-            
-            m_lastPitch = m_filters[1].append(pitch);
-            m_lastYaw = ((YawFilter)m_filters[0]).append(yaw, m_lastPitch);
-            m_lastRoll = m_filters[2].append(roll);
- 
+		public float append(float val) 
+		{
+			//look at the previous one, check if there is a dramatic shift
+			if(!faceUp)
+			{
+				val =  95 - (val - 95);
 
-            
-            //TextView rt = (TextView) findViewById(R.id.roll);
-            TextView pt = (TextView) findViewById(R.id.pitch);
-            TextView yt = (TextView) findViewById(R.id.yaw);
-            yt.setText("azi z: " + m_lastYaw);
-            //rt.setText("roll y: " + m_lastRoll);
+			}
+			m_arr[m_idx] = val;
+			prev = val;
+			m_idx++;
+			if (m_idx == AVERAGE_BUFFER)
+				m_idx = 0;
+			return avg();
+		}
+		public float avg() {
+			float sum = 0;
+			for (float x: m_arr)
+				sum += x;
+			return sum / AVERAGE_BUFFER;
+		}
 
-            ySpeed = (m_lastPitch - prevPitch);
-            pt.setText("pitch x: " + m_lastPitch);
-            xSpeed = (m_lastYaw - prevYaw);
-            //float ySpeed = m_lastPitch - prevPitch;
-            backView.move(xSpeed * 5);
-            if(xSpeed > 5 || xSpeed < -5)
-            {
-                if(saber.state == 3 || (m_lastPitch > 65 && m_lastPitch < 130))
-                { 
-                	saber.move(-xSpeed);
-                }
-                else
-                	saber.move(-xSpeed * 25);
-            }
-            else
-            	saber.move(-xSpeed);
-            
-            //float ySpeed = m_lastPitch - prevPitch;
-            backView.moveUp(ySpeed * -3);
-            if(ySpeed > 5 || ySpeed < -5)
-            	saber.moveUp(-ySpeed * 25);
-            else
-            	saber.moveUp(-ySpeed);
-        }
-    }
-    
-    //end sensor stuff
-	
-    private class EnemyView extends View {
+	}
+
+
+	private class YawFilter extends Filter{
+		static final int AVERAGE_BUFFER = 15;
+		float []m_arr = new float[AVERAGE_BUFFER];
+		Boolean set = false;
+		float prevOrient = 0;
+		float prev;
+		int m_idx = 0;
+		public float append(float val, float pitch) 
+		{
+			//look at the previous one, check if it's in discriminated territory
+			if(pitch < 115 && pitch > 70)
+			{
+				prevOrient = prev;
+				set = true;
+			}
+
+			else
+			{	
+				if(!faceUp)
+				{
+					if(val > 0)
+						m_arr[m_idx] = val - 180;
+					else
+						m_arr[m_idx] = val + 180;
+
+				}
+				else
+					m_arr[m_idx] = val;
+				m_idx++;
+			}
+			if (m_idx == AVERAGE_BUFFER)
+				m_idx = 0;
+			return avg();
+		}
+		@Override
+		public float avg() {
+			float sum = 0;
+			for (float x: m_arr)
+				sum += x;
+			prev = sum / AVERAGE_BUFFER;
+			return sum / AVERAGE_BUFFER;
+		}
+
+	}
+	private void computeOrientation() {
+		if (SensorManager.getRotationMatrix(m_rotationMatrix, m_lastGravity, m_lastAccels, m_lastMagFields)) {
+			SensorManager.getOrientation(m_rotationMatrix, m_orientation);
+
+			/* 1 radian = 57.2957795 degrees */
+			/* [0] : yaw, rotation around z axis
+			 * [1] : pitch, rotation around x axis
+			 * [2] : roll, rotation around y axis */
+			float yaw = (float) (Math.toDegrees(m_orientation[0]));
+			float pitch = (float) (Math.toDegrees(m_orientation[1]) + 180f);
+			float roll = (float) (Math.toDegrees(m_orientation[2]) + 180f);
+
+			float prevYaw = m_lastYaw;
+			float prevPitch = m_lastPitch;
+			float prevRoll = m_lastRoll;
+
+			m_lastPitch = m_filters[1].append(pitch);
+			m_lastYaw = ((YawFilter)m_filters[0]).append(yaw, m_lastPitch);
+			m_lastRoll = m_filters[2].append(roll);
+
+
+
+			//TextView rt = (TextView) findViewById(R.id.roll);
+			TextView pt = (TextView) findViewById(R.id.pitch);
+			TextView yt = (TextView) findViewById(R.id.yaw);
+			yt.setText("azi z: " + m_lastYaw);
+			//rt.setText("roll y: " + m_lastRoll);
+
+			ySpeed = (m_lastPitch - prevPitch);
+			pt.setText("pitch x: " + m_lastPitch);
+			xSpeed = (m_lastYaw - prevYaw);
+			//float ySpeed = m_lastPitch - prevPitch;
+			backView.move(xSpeed * moveScaleX);
+			if(xSpeed > 5 || xSpeed < -5)
+			{
+				if(saber.state == 3 || (m_lastPitch > 65 && m_lastPitch < 130))
+				{ 
+					saber.move(-xSpeed);
+				}
+				else
+					saber.move(-xSpeed * 25);
+			}
+			else
+				saber.move(-xSpeed);
+
+			//float ySpeed = m_lastPitch - prevPitch;
+			backView.moveUp(ySpeed * moveScaleY);
+			if(ySpeed > 5 || ySpeed < -5)
+				saber.moveUp(-ySpeed * 25);
+			else
+				saber.moveUp(-ySpeed);
+			//iterate through enemyList, move all of them according to how the background moves
+			for(EnemyView ev: enemyList)
+			{
+				ev.mX += (xSpeed * moveScaleX);
+				ev.mY += (ySpeed * moveScaleY);
+			}
+			
+			//iterate through the bulletList, see if it made contact with the hitpoint, and say so
+			for(BulletView bv: bulletList)
+			{
+				if (bv.mX < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth > saber.getPointX() && bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY())
+					bv.setBlocked();
+			}
+			
+			//when there aren't any droids in the screen, spawn new one(s)
+			if (enemyList.isEmpty())
+			{
+				final EnemyView EnemyView = new EnemyView(
+						getApplicationContext(), backView.getWidth(), backView.getHeight());
+				enemyList.add(EnemyView);
+				mFrame.addView(EnemyView);
+			}
+			//saber's always on top, baby!
+			mFrame.removeView(saber);
+			mFrame.addView(saber);
+		}
+	}
+
+	//end sensor stuff
+
+	private class EnemyView extends View {
 		// Base Bitmap Size
 		private static final int BITMAP_SIZE = 128;
 
 		// Animation refresh rate
 		private static final int REFRESH_RATE = 15;
-		
+
 		// Shot pause duration
 		private static final int PAUSE_DUR = 40;
-	
+
 		// Log TAG
 		private static final String TAG = "Enemy";
 
@@ -377,14 +409,14 @@ public class GameActivity extends Activity implements SensorEventListener
 		// measured in terms of how much the EnemyView moves
 		// in one time step.
 		private float mDx, mDy;
-		
+
 		// number of moves before the "enemy" stops to fire
 		private int mCount;
 		// number of time segments before enemy moves again
 		private int mShotCount;
-		
+
 		private boolean hasShot;
-		
+
 		private boolean destroyed;
 
 		// Height and width of the FrameLayout
@@ -397,7 +429,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private final Bitmap mScaledBitmap;
 
 		private final Paint mPainter = new Paint();
-		
+
 		private BulletView bullet;
 
 		// Reference to the movement calculation and update code
@@ -422,14 +454,16 @@ public class GameActivity extends Activity implements SensorEventListener
 			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid,
 					mScaledBitmapWidth, mScaledBitmapWidth, false);
 
-			mX = r.nextInt(mDisplayWidth);
-			mY = r.nextInt(mDisplayHeight);
-			
+			//adjusted spawn boundaries to be... not too close to the edges
+
+			mX = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayWidth)/4.0);
+			mY = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayHeight)/4.0);
+
 			mCount = r.nextInt(50) + 10;
 			mShotCount = PAUSE_DUR;
 			hasShot = false;
 			destroyed = false;
-			
+
 			// movement 
 			setRandomDirection();
 
@@ -480,11 +514,11 @@ public class GameActivity extends Activity implements SensorEventListener
 				mX += mDx;
 				mY += mDy;
 				mCount--;
-				if (mX < 0 || (mX > mDisplayWidth - mScaledBitmapWidth)){
+				if (mX < ((double)mDisplayWidth)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
 					mDx = -mDx;
 					mX += mDx;
 					mCount = 0;
-				}if (mY < 0 || (mY > mDisplayHeight - mScaledBitmapWidth)){
+				}if (mY < ((double)mDisplayHeight)/4.0 || (mY > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
 					mDy = -mDy;
 					mY += mDy;
 					mCount = 0;
@@ -500,10 +534,11 @@ public class GameActivity extends Activity implements SensorEventListener
 						Runnable r = new Runnable(){
 							public void run(){
 								final BulletView bulletView = new BulletView(
-										getApplicationContext(), mFrame.getWidth(), mFrame.getHeight(), cur,
+										getApplicationContext(), backView.getWidth(), backView.getHeight(), cur,
 										mX + mScaledBitmapWidth/2 , mY + mScaledBitmapWidth/2);
 								bullet = bulletView;
 								mFrame.addView(bulletView);
+								bulletList.add(bulletView);
 							}
 						};
 						mFrame.post(r);
@@ -518,7 +553,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				setRandomDirection();
 				hasShot = false;
 			}
-			
+
 			return isDestroyed();
 		}
 
@@ -526,11 +561,11 @@ public class GameActivity extends Activity implements SensorEventListener
 		private boolean isDestroyed() {
 			return destroyed; 
 		}
-		
+
 		public void setDestroyed() {
 			destroyed = true;
 		}
-		
+
 		private void setRandomDirection(){
 			Random r = new Random();
 			// movement 
@@ -576,7 +611,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			canvas.drawBitmap(mScaledBitmap, mX, mY, mPainter);
 		}
 	}
-	
+
 	@SuppressLint("DrawAllocation")
 	private class BulletView extends View {
 		// Base Bitmap Size
@@ -584,22 +619,22 @@ public class GameActivity extends Activity implements SensorEventListener
 
 		// Animation refresh rate
 		private static final int REFRESH_RATE = 15;
-		
+
 		// Max bullet size to determine if player is hit
 		private static final int MAX_SIZE = 192;
-		
+
 		private static final int MIN_SIZE = 2;
-				
+
 		// Log TAG
 		private static final String TAG = "Bullet";
 
 		// Current top and left coordinates
 		private float mX, mY;
-		
+
 		private float mDx, mDy;
-		
+
 		private EnemyView parent;
-		
+
 		// boolean for whether or not the bullet has been blocked
 		private boolean blocked;
 
@@ -613,7 +648,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private final Bitmap mScaledBitmap;
 
 		private final Paint mPainter = new Paint();
-		
+
 		// Reference to the movement calculation and update code
 		private final ScheduledFuture<?> mMoverFuture;
 
@@ -624,17 +659,17 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			mDisplayWidth = w;
 			mDisplayHeight = h;
-			
+
 			this.mX = mX;
 			this.mY = mY;
-			
+
 			mDx = 0;
 			mDy = 0;
-			
+
 			this.parent = parent;
-			
+
 			blocked = false;
-			
+
 			Log.i(TAG, "Display Dimensions: x:" + mDisplayWidth + " y:"
 					+ mDisplayHeight);
 
@@ -642,7 +677,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			mScaledBitmapWidth = BITMAP_SIZE;
 
 			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid2, mScaledBitmapWidth, mScaledBitmapWidth, false);
-			
+
 			ScheduledExecutorService executor = Executors
 					.newScheduledThreadPool(1);
 
@@ -652,17 +687,22 @@ public class GameActivity extends Activity implements SensorEventListener
 				@Override
 				public void run() {
 					if (moveUntilHitOrDeflect()){
-						if (!cur.hasHitPlayer()) cur.parent.setDestroyed();
+						if (!cur.hasHitPlayer())
+						{
+							cur.parent.setDestroyed();
+							enemyList.remove(cur.parent);
+							score++;
+						}
 						stop();
 					}else {
 						postInvalidate();
 					}
 				}
 			}, 0, REFRESH_RATE, TimeUnit.MILLISECONDS);
-			
+
 			Log.i(TAG, "Bullet created at x:" + mX + " y:" + mY);
 		}
-		
+
 		private void stop() {
 			final BulletView view = this;
 			// cancel the executor
@@ -678,13 +718,16 @@ public class GameActivity extends Activity implements SensorEventListener
 				Log.e(TAG, "failed to cancel mMoverFuture:" + this);
 			}
 		}
-		
+
 		private boolean moveUntilHitOrDeflect() {
 			if(!(hasHitPlayer() || deflected())){
-				mScaledBitmapWidth *= 1.1;
+				mScaledBitmapWidth *= 1.025;
 			}else if(hasHitPlayer() && !deflected()){
-				// call method that decrements players health
+				//if it has reached the player and the player didn't hit it with their saber...
+				lives--;
+				Toast.makeText(getApplicationContext(), "Ouch! " + lives + " lives left.", Toast.LENGTH_SHORT).show();
 			}else if(deflected() && !hasHitEnemy()){
+				//if the player deflected it, then return to sender
 				if (mScaledBitmapWidth > MIN_SIZE){
 					mScaledBitmapWidth *= .9;
 				}
@@ -697,19 +740,19 @@ public class GameActivity extends Activity implements SensorEventListener
 		}
 
 		private boolean hasHitPlayer() {
-		//testing code: immediately bounces back the bullet to its droid
-			if (mScaledBitmapWidth * 1.1 >= MAX_SIZE) setBlocked();
+			//testing code: immediately bounces back the bullet to its droid
+			//	if (mScaledBitmapWidth * 1.1 >= MAX_SIZE) setBlocked();
 			return mScaledBitmapWidth >= MAX_SIZE;
 		}
-		
+
 		private boolean hasHitEnemy() {
 			return deflected() && mScaledBitmapWidth <= MIN_SIZE;
 		}
-		
+
 		private boolean deflected() {
 			return blocked;
 		}
-	
+
 		// player call this when bullet needs to be deflected
 		public void setBlocked(){
 			blocked = true;
@@ -722,7 +765,7 @@ public class GameActivity extends Activity implements SensorEventListener
 					mX, mY, mPainter);
 		}
 	}
-	
+
 	public class Background extends View
 	{
 		private static final int REFRESH_RATE = 40;
@@ -739,7 +782,7 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			mDisplayWidth = 720;
 			mDisplayHeight = 1080;
-			
+
 			int density = 150;
 			mBackground = Bitmap.createScaledBitmap(mBitmap, 
 					mBitmap.getWidth(), mBitmap.getHeight(),false);
@@ -780,7 +823,7 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			if(mX + mWidth < mDisplayWidth)
 				mX = mDisplayWidth-mWidth;
-			
+
 			mY += mUpSpeed/2;
 			if(mY > 0)
 				mY = 0;
@@ -813,7 +856,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			this.y = y;
 		}	
 	}
-	
+
 	public class Lightsaber extends View 
 	{
 		private static final int REFRESH_RATE = 40;
@@ -830,8 +873,8 @@ public class GameActivity extends Activity implements SensorEventListener
 		int maxDegrees = 20;
 		boolean swinging = false;
 		public LinkedList<PointXY> hitBoxes;
-		
-		
+
+
 		public Lightsaber(Context context) 
 		{
 			super(context);
@@ -852,14 +895,14 @@ public class GameActivity extends Activity implements SensorEventListener
 			mX = pointX - neutral.getWidth()/2;
 			mY = pointY - neutral.getHeight()*1/4 - 60;
 			//mNeutral = Bitmap.createScaledBitmap(mBitmap,
-				//	mBitmap.getScaledWidth(2), mBitmap.getScaledHeight(2), false);
+			//	mBitmap.getScaledWidth(2), mBitmap.getScaledHeight(2), false);
 			//assign dem bitmaps
 			mRotate = 0;
 			psuedoRotate = 0;
 			hitBoxes = new LinkedList<PointXY>();	
 			mUpSpeed = 0;
 		}
-		
+
 		private void start() 
 		{
 			//nothing fancy, just run. 
@@ -898,7 +941,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			int rotScale = 1;
 			int scale = 10;
 			int yscale = 10;
-			
+
 			if(psuedoRotate > -shift && psuedoRotate < shift && mSpeed > -shift/2 && mSpeed < shift/2 && mUpSpeed < shift/2)
 			{
 				currSlash = neutral;
@@ -941,7 +984,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				mRotate = -maxDegrees;
 				psuedoRotate = -maxDegrees;
 			}
-			
+
 			//now lets slow down after a slash
 			if(state == 1 && pointX > centerX + 300)
 			{
@@ -1023,23 +1066,23 @@ public class GameActivity extends Activity implements SensorEventListener
 				canvas.rotate(mRotate - shift, pointX, pointY);
 			canvas.drawBitmap(currSlash, mX, mY, mPainter);
 
-			 Paint paint = new Paint();
-			 paint.setColor(Color.GREEN);
-			 paint.setStrokeWidth(2);
-			 paint.setStyle(Paint.Style.STROKE);
-			 
+			Paint paint = new Paint();
+			paint.setColor(Color.GREEN);
+			paint.setStrokeWidth(2);
+			paint.setStyle(Paint.Style.STROKE);
+
 			canvas.drawCircle(pointX, pointY, 4, paint);
 			//lets make loop of previous circles
-			
+
 			for(int i = 0; i < hitBoxes.size(); i++)
 			{
 				canvas.drawCircle(hitBoxes.get(i).x, hitBoxes.get(i).y, 3, paint);
 			}
-			
+
 			canvas.restore();
 		}
 
 	}
-	
-	
+
+
 }

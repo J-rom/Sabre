@@ -396,7 +396,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private static final int BITMAP_SIZE = 128;
 
 		// Animation refresh rate
-		private static final int REFRESH_RATE = 15;
+		private static final int REFRESH_RATE = 25;
 
 		// Shot pause duration
 		private static final int PAUSE_DUR = 40;
@@ -620,7 +620,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private static final int BITMAP_SIZE = 16;
 
 		// Animation refresh rate
-		private static final int REFRESH_RATE = 15;
+		private static final int REFRESH_RATE = 25;
 
 		// Max bullet size to determine if player is hit
 		private static final int MAX_SIZE = 192;
@@ -729,7 +729,6 @@ public class GameActivity extends Activity implements SensorEventListener
 			}else if(hasHitPlayer() && !deflected()){
 				//if it has reached the player and the player didn't hit it with their saber...
 				lives--;
-				Toast.makeText(getApplicationContext(), "Ouch!", Toast.LENGTH_SHORT).show();
 			}else if(deflected() && !hasHitEnemy()){
 				//if the player deflected it, then return to sender
 				if (mScaledBitmapWidth > MIN_SIZE){

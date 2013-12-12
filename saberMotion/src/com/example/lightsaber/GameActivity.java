@@ -357,11 +357,7 @@ public class GameActivity extends Activity implements SensorEventListener
 						&& bv.mScaledBitmapWidth > 150)
 					bv.setBlocked();
 			}
-			
-			//saber's always on top, baby!
-			mFrame.removeView(saber);
-			mFrame.addView(saber);
-			
+						
 			if (lives <= 0)
 			{
 				Toast.makeText(getApplicationContext(), "YOU LOSE. YOU WILL NEVER BE A JEDI. OR A SITH.", Toast.LENGTH_SHORT).show();
@@ -372,13 +368,11 @@ public class GameActivity extends Activity implements SensorEventListener
 					bulletList.get(0).stop();
 					mFrame.removeView(bulletList.remove(0));
 				}
-				bulletList.clear();
 				while(!enemyList.isEmpty())
 				{
 					enemyList.get(0).stop();
 					mFrame.removeView(enemyList.remove(0));
 				}
-				enemyList.clear();
 			}
 			
 			//when there aren't any droids in the screen, spawn new one(s)
@@ -389,6 +383,9 @@ public class GameActivity extends Activity implements SensorEventListener
 				enemyList.add(EnemyView);
 				mFrame.addView(EnemyView);
 			}
+			//saber's always on top, baby!
+			mFrame.removeView(saber);
+			mFrame.addView(saber);
 		}
 	}
 

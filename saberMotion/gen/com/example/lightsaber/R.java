@@ -45,7 +45,7 @@ public final class R {
         public static final int action_settings=0x7f0a0007;
         public static final int frame=0x7f0a0003;
         public static final int help=0x7f0a0002;
-        public static final int helpActivityButton=0x7f0a0006;
+        public static final int helpText=0x7f0a0006;
         public static final int lives=0x7f0a0005;
         public static final int logo=0x7f0a0000;
         public static final int score=0x7f0a0004;

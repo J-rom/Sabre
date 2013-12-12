@@ -458,8 +458,8 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			//adjusted spawn boundaries to be... not too close to the edges
 
-			mX = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayHeight)/4.0);
-			mY = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayWidth)/4.0);
+			mX = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayHeight)/4.0)) + ((double)mDisplayHeight)/4.0);
+			mY = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0)) + ((double)mDisplayWidth)/4.0);
 
 			mCount = r.nextInt(50) + 10;
 			mShotCount = PAUSE_DUR;
@@ -516,11 +516,14 @@ public class GameActivity extends Activity implements SensorEventListener
 				mX += mDx;
 				mY += mDy;
 				mCount--;
-				if (mX < ((double)mDisplayHeight)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
+				if (mX < ((double)mDisplayHeight)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth))
+				{
 					mDx = -mDx;
 					mX += mDx;
 					mCount = 0;
-				}if (mY < ((double)mDisplayWidth)/4.0 || (mY > 3.0 * ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)){
+				}
+				if (mY < ((double)mDisplayWidth)/4.0 || (mY > 3.0 * ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth))
+				{
 					mDy = -mDy;
 					mY += mDy;
 					mCount = 0;

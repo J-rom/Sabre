@@ -353,18 +353,11 @@ public class GameActivity extends Activity implements SensorEventListener
 			for(BulletView bv: bulletList)
 			{
 				if (bv.mX < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth > saber.getPointX() && 
-						bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY())
+						bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY()
+						&& bv.mScaledBitmapWidth > 150)
 					bv.setBlocked();
 			}
 			
-			//when there aren't any droids in the screen, spawn new one(s)
-			if (enemyList.isEmpty())
-			{
-				final EnemyView EnemyView = new EnemyView(
-						getApplicationContext(), backView.getWidth(), backView.getHeight());
-				enemyList.add(EnemyView);
-				mFrame.addView(EnemyView);
-			}
 			//saber's always on top, baby!
 			mFrame.removeView(saber);
 			mFrame.addView(saber);
@@ -374,8 +367,27 @@ public class GameActivity extends Activity implements SensorEventListener
 				Toast.makeText(getApplicationContext(), "YOU LOSE. YOU WILL NEVER BE A JEDI. OR A SITH.", Toast.LENGTH_SHORT).show();
 				score = 0;
 				lives = 10;
+				while(!bulletList.isEmpty())
+				{
+					bulletList.get(0).stop();
+					mFrame.removeView(bulletList.remove(0));
+				}
 				bulletList.clear();
+				while(!enemyList.isEmpty())
+				{
+					enemyList.get(0).stop();
+					mFrame.removeView(enemyList.remove(0));
+				}
 				enemyList.clear();
+			}
+			
+			//when there aren't any droids in the screen, spawn new one(s)
+			if (enemyList.isEmpty())
+			{
+				final EnemyView EnemyView = new EnemyView(
+						getApplicationContext(), backView.getWidth() - 100, backView.getHeight() - 100);
+				enemyList.add(EnemyView);
+				mFrame.addView(EnemyView);
 			}
 		}
 	}
@@ -614,7 +626,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private static final int REFRESH_RATE = 15;
 
 		// Max bullet size to determine if player is hit
-		private static final int MAX_SIZE = 30;//original - 192
+		private static final int MAX_SIZE = 192;
 
 		private static final int MIN_SIZE = 2;
 

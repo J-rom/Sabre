@@ -246,7 +246,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		public float append(float val, float pitch) 
 		{
 			//look at the previous one, check if it's in discriminated territory
-			if(pitch < 110 && pitch > 70)
+			if(pitch < 110 && pitch > 90)
 			{
 				prevOrient = prev;
 				set = true;
@@ -303,9 +303,9 @@ public class GameActivity extends Activity implements SensorEventListener
 
 
 			//TextView rt = (TextView) findViewById(R.id.roll);
-//			TextView pt = (TextView) findViewById(R.id.pitch);
+			TextView pt = (TextView) findViewById(R.id.pitch);
 			TextView yt = (TextView) findViewById(R.id.yaw);
-			yt.setText("azi z: " + m_lastYaw);
+			yt.setText("azi z: " + (int)m_lastYaw);
 			//rt.setText("roll y: " + m_lastRoll);
 			
 			TextView sco = (TextView) findViewById(R.id.score);
@@ -315,13 +315,13 @@ public class GameActivity extends Activity implements SensorEventListener
 			liv.setText("\tLives: " + lives);
 
 			ySpeed = (m_lastPitch - prevPitch);
-//			pt.setText("pitch x: " + m_lastPitch);
+			pt.setText("pitch x: " + (int)m_lastPitch);
 			xSpeed = (m_lastYaw - prevYaw);
 			//float ySpeed = m_lastPitch - prevPitch;
 			backView.move(xSpeed * -5);
 			if(xSpeed > 5 || xSpeed < -5)
 			{
-				if(saber.state == 3 || (m_lastPitch > 70 && m_lastPitch < 110))
+				if(saber.state == 3)
 				{ 
 					saber.move(-xSpeed);
 				}
@@ -974,7 +974,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				scale = 10;
 			}
 
-			else if(mUpSpeed/2 > shift && !swinging)
+			else if(mUpSpeed/4 > shift && !swinging)
 			{
 				currSlash = downSlash;
 				state = 3;

@@ -42,14 +42,16 @@ public final class R {
         public static final int wallpaperlulz=0x7f02000b;
     }
     public static final class id {
-        public static final int action_settings=0x7f0a0007;
+        public static final int action_settings=0x7f0a0009;
         public static final int frame=0x7f0a0003;
         public static final int help=0x7f0a0002;
-        public static final int helpActivityButton=0x7f0a0006;
+        public static final int helpText=0x7f0a0008;
         public static final int lives=0x7f0a0005;
         public static final int logo=0x7f0a0000;
+        public static final int pitch=0x7f0a0007;
         public static final int score=0x7f0a0004;
         public static final int start=0x7f0a0001;
+        public static final int yaw=0x7f0a0006;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

@@ -39,7 +39,7 @@ public class GameActivity extends Activity implements SensorEventListener
 
 	float speed = 0;
 	float xSpeed = 0, ySpeed = 0;
-	int moveScaleX = -3, moveScaleY = -4;
+	int moveScaleX = -7, moveScaleY = -7;
 
 	int lives = 10;
 	int score = 0;
@@ -246,7 +246,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		public float append(float val, float pitch) 
 		{
 			//look at the previous one, check if it's in discriminated territory
-			if(pitch < 115 && pitch > 70)
+			if(pitch < 110 && pitch > 70)
 			{
 				prevOrient = prev;
 				set = true;
@@ -304,8 +304,8 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			//TextView rt = (TextView) findViewById(R.id.roll);
 //			TextView pt = (TextView) findViewById(R.id.pitch);
-//			TextView yt = (TextView) findViewById(R.id.yaw);
-//			yt.setText("azi z: " + m_lastYaw);
+			TextView yt = (TextView) findViewById(R.id.yaw);
+			yt.setText("azi z: " + m_lastYaw);
 			//rt.setText("roll y: " + m_lastRoll);
 			
 			TextView sco = (TextView) findViewById(R.id.score);
@@ -318,10 +318,10 @@ public class GameActivity extends Activity implements SensorEventListener
 //			pt.setText("pitch x: " + m_lastPitch);
 			xSpeed = (m_lastYaw - prevYaw);
 			//float ySpeed = m_lastPitch - prevPitch;
-			backView.move(xSpeed * moveScaleX);
+			backView.move(xSpeed * -5);
 			if(xSpeed > 5 || xSpeed < -5)
 			{
-				if(saber.state == 3 || (m_lastPitch > 65 && m_lastPitch < 130))
+				if(saber.state == 3 || (m_lastPitch > 70 && m_lastPitch < 110))
 				{ 
 					saber.move(-xSpeed);
 				}
@@ -332,7 +332,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				saber.move(-xSpeed);
 
 			//float ySpeed = m_lastPitch - prevPitch;
-			backView.moveUp(ySpeed * moveScaleY);
+			backView.moveUp(ySpeed * -5);
 			if(ySpeed > 5 || ySpeed < -5)
 				saber.moveUp(-ySpeed * 25);
 			else

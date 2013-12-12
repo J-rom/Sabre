@@ -39,7 +39,7 @@ public class GameActivity extends Activity implements SensorEventListener
 
 	float speed = 0;
 	float xSpeed = 0, ySpeed = 0;
-	int moveScaleX = -10, moveScaleY = -7;
+	int moveScaleX = -3, moveScaleY = -4;
 
 	int lives = 10;
 	int score = 0;

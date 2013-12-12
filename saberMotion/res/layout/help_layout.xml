@@ -4,11 +4,9 @@
     android:layout_height="fill_parent"
     android:background="@color/blue">
 
-    <Button
-        android:id="@+id/helpActivityButton"
-        style="@style/ButtonText"
-        android:layout_centerInParent="true"
-        android:background="@drawable/btn_blue"
-        android:text="Help" >
-    </Button>
+    <TextView
+        android:id="@+id/helpText"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+    </TextView>
 </RelativeLayout>

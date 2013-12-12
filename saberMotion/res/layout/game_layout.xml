@@ -17,35 +17,19 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:background="#FF666666" >
-
-        <Button
-            android:id="@+id/left_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="left" />
-
-        <Button
-            android:id="@+id/right_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/left_button"
-            android:text="right" />
-
+        
         <TextView
-            android:id="@+id/pitch"
+            android:id="@+id/score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
             android:layout_marginLeft="31dp"
-            android:layout_toRightOf="@+id/right_button"
             android:text="TextView" />
 
         <TextView
-            android:id="@+id/yaw"
+            android:id="@+id/lives"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/pitch"
-            android:layout_centerVertical="true"
+           	android:layout_toRightOf="@+id/score"
             android:text="TextView" />
 
     </RelativeLayout>

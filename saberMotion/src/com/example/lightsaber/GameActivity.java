@@ -96,9 +96,6 @@ public class GameActivity extends Activity implements SensorEventListener
 		mBitmapDroid = BitmapFactory.decodeResource(getResources(), R.drawable.droid);
 		mBitmapDroid2 = BitmapFactory.decodeResource(getResources(), R.drawable.red);
 
-		final Button leftButton = (Button) findViewById(R.id.left_button);
-		final Button rightButton = (Button) findViewById(R.id.right_button);
-
 		backView = new Background(
 				getApplicationContext());
 		saber = new Lightsaber(getApplicationContext());
@@ -106,31 +103,6 @@ public class GameActivity extends Activity implements SensorEventListener
 		mFrame.addView(saber);
 		backView.start();
 		saber.start();
-
-		leftButton.setOnClickListener(new OnClickListener() 
-		{
-			//welp. scroll image left.
-
-			public void onClick(View v) 
-			{
-				// TODO
-				//backView.move(-2);
-				//saber.move(-2);
-			}
-		});
-
-		rightButton.setOnClickListener(new OnClickListener() {
-
-			// Remove the last still-visible BubbleView from the screen
-			// Manage RemoveButton
-
-			public void onClick(View v) 
-			{
-				//backView.move(2);
-				//saber.move(2);
-				Toast.makeText(getApplicationContext(), "mFrame"+backView.mDisplayWidth +" "+mFrame.getWidth() + " "+saber.psuedoRotate + " " + saber.state, Toast.LENGTH_SHORT).show();
-			}
-		});
 
 		//sensor stuff
 		m_sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -331,13 +303,19 @@ public class GameActivity extends Activity implements SensorEventListener
 
 
 			//TextView rt = (TextView) findViewById(R.id.roll);
-			TextView pt = (TextView) findViewById(R.id.pitch);
-			TextView yt = (TextView) findViewById(R.id.yaw);
-			yt.setText("azi z: " + m_lastYaw);
+//			TextView pt = (TextView) findViewById(R.id.pitch);
+//			TextView yt = (TextView) findViewById(R.id.yaw);
+//			yt.setText("azi z: " + m_lastYaw);
 			//rt.setText("roll y: " + m_lastRoll);
+			
+			TextView sco = (TextView) findViewById(R.id.score);
+			TextView liv = (TextView) findViewById(R.id.lives);
+			
+			sco.setText("Score: " + score);
+			liv.setText("\tLives: " + lives);
 
 			ySpeed = (m_lastPitch - prevPitch);
-			pt.setText("pitch x: " + m_lastPitch);
+//			pt.setText("pitch x: " + m_lastPitch);
 			xSpeed = (m_lastYaw - prevYaw);
 			//float ySpeed = m_lastPitch - prevPitch;
 			backView.move(xSpeed * moveScaleX);
@@ -365,11 +343,17 @@ public class GameActivity extends Activity implements SensorEventListener
 				ev.mX += (xSpeed * moveScaleX);
 				ev.mY += (ySpeed * moveScaleY);
 			}
+			for(BulletView bv: bulletList)
+			{
+				bv.mX += (xSpeed * moveScaleX);
+				bv.mY += (ySpeed * moveScaleY);
+			}
 			
 			//iterate through the bulletList, see if it made contact with the hitpoint, and say so
 			for(BulletView bv: bulletList)
 			{
-				if (bv.mX < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth > saber.getPointX() && bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY())
+				if (bv.mX < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth > saber.getPointX() && 
+						bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY())
 					bv.setBlocked();
 			}
 			
@@ -384,6 +368,15 @@ public class GameActivity extends Activity implements SensorEventListener
 			//saber's always on top, baby!
 			mFrame.removeView(saber);
 			mFrame.addView(saber);
+			
+			if (lives <= 0)
+			{
+				Toast.makeText(getApplicationContext(), "YOU LOSE. YOU WILL NEVER BE A JEDI. OR A SITH.", Toast.LENGTH_SHORT).show();
+				score = 0;
+				lives = 10;
+				bulletList.clear();
+				enemyList.clear();
+			}
 		}
 	}
 
@@ -456,8 +449,8 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			//adjusted spawn boundaries to be... not too close to the edges
 
-			mX = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayWidth)/4.0);
-			mY = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayHeight)/4.0);
+			mX = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayHeight)/4.0);
+			mY = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)) + ((double)mDisplayWidth)/4.0);
 
 			mCount = r.nextInt(50) + 10;
 			mShotCount = PAUSE_DUR;
@@ -514,11 +507,11 @@ public class GameActivity extends Activity implements SensorEventListener
 				mX += mDx;
 				mY += mDy;
 				mCount--;
-				if (mX < ((double)mDisplayWidth)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
+				if (mX < ((double)mDisplayHeight)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
 					mDx = -mDx;
 					mX += mDx;
 					mCount = 0;
-				}if (mY < ((double)mDisplayHeight)/4.0 || (mY > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth)){
+				}if (mY < ((double)mDisplayWidth)/4.0 || (mY > 3.0 * ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth)){
 					mDy = -mDy;
 					mY += mDy;
 					mCount = 0;
@@ -621,7 +614,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private static final int REFRESH_RATE = 15;
 
 		// Max bullet size to determine if player is hit
-		private static final int MAX_SIZE = 192;
+		private static final int MAX_SIZE = 30;//original - 192
 
 		private static final int MIN_SIZE = 2;
 
@@ -712,6 +705,8 @@ public class GameActivity extends Activity implements SensorEventListener
 					@Override
 					public void run() {
 						mFrame.removeView(view);
+						bulletList.remove(view);
+						if (!view.blocked) lives--; 
 					}
 				});
 			} else {
@@ -721,11 +716,11 @@ public class GameActivity extends Activity implements SensorEventListener
 
 		private boolean moveUntilHitOrDeflect() {
 			if(!(hasHitPlayer() || deflected())){
-				mScaledBitmapWidth *= 1.025;
+				mScaledBitmapWidth *= 1.1;
 			}else if(hasHitPlayer() && !deflected()){
 				//if it has reached the player and the player didn't hit it with their saber...
 				lives--;
-				Toast.makeText(getApplicationContext(), "Ouch! " + lives + " lives left.", Toast.LENGTH_SHORT).show();
+				Toast.makeText(getApplicationContext(), "Ouch!", Toast.LENGTH_SHORT).show();
 			}else if(deflected() && !hasHitEnemy()){
 				//if the player deflected it, then return to sender
 				if (mScaledBitmapWidth > MIN_SIZE){
@@ -742,11 +737,13 @@ public class GameActivity extends Activity implements SensorEventListener
 		private boolean hasHitPlayer() {
 			//testing code: immediately bounces back the bullet to its droid
 			//	if (mScaledBitmapWidth * 1.1 >= MAX_SIZE) setBlocked();
-			return mScaledBitmapWidth >= MAX_SIZE;
+			boolean val = mScaledBitmapWidth * 1.1 >= MAX_SIZE;
+			return val;
 		}
 
 		private boolean hasHitEnemy() {
-			return deflected() && mScaledBitmapWidth <= MIN_SIZE;
+			boolean val = deflected() && mScaledBitmapWidth <= MIN_SIZE;
+			return val;
 		}
 
 		private boolean deflected() {
@@ -1066,18 +1063,18 @@ public class GameActivity extends Activity implements SensorEventListener
 				canvas.rotate(mRotate - shift, pointX, pointY);
 			canvas.drawBitmap(currSlash, mX, mY, mPainter);
 
-			Paint paint = new Paint();
-			paint.setColor(Color.GREEN);
-			paint.setStrokeWidth(2);
-			paint.setStyle(Paint.Style.STROKE);
-
-			canvas.drawCircle(pointX, pointY, 4, paint);
-			//lets make loop of previous circles
-
-			for(int i = 0; i < hitBoxes.size(); i++)
-			{
-				canvas.drawCircle(hitBoxes.get(i).x, hitBoxes.get(i).y, 3, paint);
-			}
+//			Paint paint = new Paint();
+//			paint.setColor(Color.GREEN);
+//			paint.setStrokeWidth(2);
+//			paint.setStyle(Paint.Style.STROKE);
+//
+//			canvas.drawCircle(pointX, pointY, 4, paint);
+//			//lets make loop of previous circles
+//
+//			for(int i = 0; i < hitBoxes.size(); i++)
+//			{
+//				canvas.drawCircle(hitBoxes.get(i).x, hitBoxes.get(i).y, 3, paint);
+//			}
 
 			canvas.restore();
 		}

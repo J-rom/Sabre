@@ -32,6 +32,12 @@ import android.widget.Toast;
 
 public class GameActivity extends Activity implements SensorEventListener 
 {
+	@Override
+	public void onBackPressed() {
+		super.onBackPressed();
+		overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_left);
+	}
+	
 	// Main view
 	private FrameLayout mFrame;
 	//there's definitely a better way to do this, but it ain't happening
@@ -44,6 +50,7 @@ public class GameActivity extends Activity implements SensorEventListener
 	int lives = 10;
 	int score = 0;
 
+	int badDelay = 0;
 	Boolean faceUp = false;
 	//sensor stuff
 	/* sensor data */
@@ -246,7 +253,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		public float append(float val, float pitch) 
 		{
 			//look at the previous one, check if it's in discriminated territory
-			if(pitch < 110 && pitch > 90)
+			if(pitch < 110 && pitch > 70)
 			{
 				prevOrient = prev;
 				set = true;
@@ -317,6 +324,8 @@ public class GameActivity extends Activity implements SensorEventListener
 			ySpeed = (m_lastPitch - prevPitch);
 			pt.setText("pitch x: " + (int)m_lastPitch);
 			xSpeed = (m_lastYaw - prevYaw);
+
+			pt.setText("pitch x: " + (int)xSpeed);
 			//float ySpeed = m_lastPitch - prevPitch;
 			backView.move(xSpeed * -5);
 			if(xSpeed > 5 || xSpeed < -5)
@@ -348,14 +357,16 @@ public class GameActivity extends Activity implements SensorEventListener
 				bv.mX += (xSpeed * moveScaleX);
 				bv.mY += (ySpeed * moveScaleY);
 			}
-			
+			int val = 20;
 			//iterate through the bulletList, see if it made contact with the hitpoint, and say so
 			for(BulletView bv: bulletList)
 			{
-				if (bv.mX < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth > saber.getPointX() && 
-						bv.mY < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth > saber.getPointY()
-						&& bv.mScaledBitmapWidth > 150)
+				if (bv.mX - val < saber.getPointX() && bv.mX + bv.mScaledBitmapWidth + val > saber.getPointX() && 
+						bv.mY -val/2 < saber.getPointY() && bv.mY + bv.mScaledBitmapWidth + val * 3 > saber.getPointY()
+						&& bv.mScaledBitmapWidth > 10 && saber.swinging)
 					bv.setBlocked();
+
+				badDelay = 0;
 			}
 						
 			if (lives <= 0)
@@ -376,7 +387,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			}
 			
 			//when there aren't any droids in the screen, spawn new one(s)
-			if (enemyList.isEmpty())
+			if (enemyList.isEmpty() && badDelay > 100)
 			{
 				final EnemyView EnemyView = new EnemyView(
 						getApplicationContext(), backView.getWidth() - 100, backView.getHeight() - 100);
@@ -384,6 +395,7 @@ public class GameActivity extends Activity implements SensorEventListener
 				mFrame.addView(EnemyView);
 			}
 			//saber's always on top, baby!
+			badDelay++;
 			mFrame.removeView(saber);
 			mFrame.addView(saber);
 		}
@@ -399,7 +411,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private static final int REFRESH_RATE = 15;
 
 		// Shot pause duration
-		private static final int PAUSE_DUR = 40;
+		private static final int PAUSE_DUR = 80;
 
 		// Log TAG
 		private static final String TAG = "Enemy";
@@ -458,9 +470,9 @@ public class GameActivity extends Activity implements SensorEventListener
 
 			//adjusted spawn boundaries to be... not too close to the edges
 
-			mX = (float) (r.nextInt((int) (mDisplayHeight - ((double)mDisplayHeight)/4.0)) + ((double)mDisplayHeight)/4.0);
-			mY = (float) (r.nextInt((int) (mDisplayWidth - ((double)mDisplayWidth)/4.0)) + ((double)mDisplayWidth)/4.0);
-
+			mX = (float) (r.nextInt(300) + backView.mX + 350);
+			mY = (float) (r.nextInt(50) + backView.mY + 650);
+			
 			mCount = r.nextInt(50) + 10;
 			mShotCount = PAUSE_DUR;
 			hasShot = false;
@@ -516,25 +528,29 @@ public class GameActivity extends Activity implements SensorEventListener
 				mX += mDx;
 				mY += mDy;
 				mCount--;
-				if (mX < ((double)mDisplayHeight)/4.0 || (mX > 3.0 * ((double)mDisplayHeight)/4.0 - mScaledBitmapWidth))
+				
+				if (mX > backView.mX + 650 || mX < backView.mX + 350 - mDisplayWidth)
 				{
 					mDx = -mDx;
 					mX += mDx;
 					mCount = 0;
 				}
-				if (mY < ((double)mDisplayWidth)/4.0 || (mY > 3.0 * ((double)mDisplayWidth)/4.0 - mScaledBitmapWidth))
+			
+				if (mY > backView.mY + 700 || mY < backView.mY + 650 - mDisplayHeight)
 				{
 					mDy = -mDy;
 					mY += mDy;
 					mCount = 0;
 				}
+				
 			}else if(!isDestroyed() && mShotCount > 0){
 				//first time entering fire a shot
 				if (!hasShot){
 					hasShot = true;
 				}else if(mShotCount == PAUSE_DUR/2 ){
 					Random rand = new Random();
-					if (rand.nextInt() % 2 > 0){
+					if (rand.nextInt() % 4 > 0)
+					{
 						final EnemyView cur = this;
 						Runnable r = new Runnable(){
 							public void run(){
@@ -576,36 +592,36 @@ public class GameActivity extends Activity implements SensorEventListener
 			// movement 
 			switch ((r.nextInt(mDisplayWidth)) % 8){
 			case 0:
-				mDx = 10;
+				mDx = 3;
 				mDy = 0;
 				break;
 			case 1:
-				mDx = -10;
+				mDx = -3;
 				mDy = 0;
 				break;
 			case 2:
 				mDx = 0;
-				mDy = 10;
+				mDy = 3;
 				break;
 			case 3:
 				mDx = 0;
-				mDy = -10;
+				mDy = -3;
 				break;
 			case 4:
-				mDx = 10;
-				mDy = 10;
+				mDx = 3;
+				mDy = 3;
 				break;
 			case 5:
-				mDx = -10;
-				mDy = -10;
+				mDx = -3;
+				mDy = -3;
 				break;
 			case 6:
-				mDx = 10;
-				mDy = -10;
+				mDx = 3;
+				mDy = -3;
 				break;
 			case 7:
-				mDx = -10;
-				mDy = 10;
+				mDx = -3;
+				mDy = 3;
 				break;
 			}
 		}
@@ -647,7 +663,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		private int mDisplayWidth, mDisplayHeight;
 
 		// Size of the BulletView
-		private int mScaledBitmapWidth;
+		private float mScaledBitmapWidth;
 
 		// Underlying Bitmap scaled to new size
 		private final Bitmap mScaledBitmap;
@@ -681,7 +697,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			// Set BulletView's size
 			mScaledBitmapWidth = BITMAP_SIZE;
 
-			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid2, mScaledBitmapWidth, mScaledBitmapWidth, false);
+			mScaledBitmap = Bitmap.createScaledBitmap(mBitmapDroid2, (int)mScaledBitmapWidth, (int)mScaledBitmapWidth, false);
 
 			ScheduledExecutorService executor = Executors
 					.newScheduledThreadPool(1);
@@ -728,7 +744,7 @@ public class GameActivity extends Activity implements SensorEventListener
 
 		private boolean moveUntilHitOrDeflect() {
 			if(!(hasHitPlayer() || deflected())){
-				mScaledBitmapWidth *= 1.1;
+				mScaledBitmapWidth *= 1.01;
 			}else if(hasHitPlayer() && !deflected()){
 				//if it has reached the player and the player didn't hit it with their saber...
 				lives--;
@@ -770,7 +786,7 @@ public class GameActivity extends Activity implements SensorEventListener
 		// Draws the scaled Bitmap
 		@Override
 		protected void onDraw(Canvas canvas) {
-			canvas.drawBitmap(Bitmap.createScaledBitmap(mScaledBitmap, mScaledBitmapWidth, mScaledBitmapWidth, false), 
+			canvas.drawBitmap(Bitmap.createScaledBitmap(mScaledBitmap, (int)mScaledBitmapWidth, (int)mScaledBitmapWidth, false), 
 					mX, mY, mPainter);
 		}
 	}
@@ -778,7 +794,7 @@ public class GameActivity extends Activity implements SensorEventListener
 	public class Background extends View
 	{
 		private static final int REFRESH_RATE = 40;
-		float mX, mY, mSpeed, mUpSpeed;
+		public float mX, mY, mSpeed, mUpSpeed;
 		private final Paint mPainter = new Paint();
 		float mDisplayWidth, mDisplayHeight;
 		private ScheduledFuture<?> mMoverFuture;
@@ -800,7 +816,7 @@ public class GameActivity extends Activity implements SensorEventListener
 			mSpeed = 0;
 			mUpSpeed = 0;
 			mX = 0;
-			mY = 0;
+			mY = 100;
 			//System.out.println(mFrame.getWidth()+" "+ mDisplayWidth);
 		}
 		public void setWidth(int w, int h)
